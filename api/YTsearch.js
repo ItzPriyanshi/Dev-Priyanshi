@@ -1,4 +1,4 @@
-const yts = require('yt-search');
+const youtubesearchapi = require("youtube-search-api");
 
 const meta = {
   name: "YTsearch",
@@ -16,30 +16,27 @@ async function onStart({ res, req }) {
   if (!query) {
     return res.status(400).json({
       status: false,
-      error: 'Query parameter is required'
+      error: "Query parameter is required"
     });
   }
 
   try {
-    // Perform YouTube search
-    const r = await yts(query);
-    const videos = r.videos.slice(0, 3);
+    const searchResults = await youtubesearchapi.GetListByKeyword(query, false, 3);
 
-    if (videos.length === 0) {
+    if (!searchResults.items || searchResults.items.length === 0) {
       return res.status(404).json({
         status: false,
-        error: 'No results found'
+        error: "No results found"
       });
     }
 
-    // Format response
-    const results = videos.map(v => ({
-      title: v.title,
-      url: v.url,
-      duration: v.timestamp,
-      views: v.views,
-      author: v.author.name,
-      thumbnail: v.thumbnail
+    const results = searchResults.items.map(video => ({
+      title: video.title,
+      url: `https://www.youtube.com/watch?v=${video.id}`,
+      duration: video.length.simpleText || "N/A",
+      views: video.viewCount || "N/A",
+      author: video.channelTitle,
+      thumbnail: video.thumbnail.thumbnails.pop().url
     }));
 
     return res.json({
