@@ -1,7 +1,7 @@
 {
   "name": "Priyanshi's Api",
   "version": "v1.0",
-  "description": "Simple and Easy-to-Use API Documentation",
+  "description": "REST APIs By Priyanshi Kaur",
   "header": {
     "status": "Online!",
     "imageSrc": [
@@ -23,7 +23,7 @@
     },
     {
       "name": "Contact Me",
-      "url": "https://t.me/ajirodesu"
+      "url": "https://t.me/priyanshikaurji"
     }
   ],
   "notifications": [
@@ -32,8 +32,8 @@
       "message": "Explore our APIs and integrate them into your projects."
     },
     {
-      "title": "New Feature",
-      "message": "We've added support for WebSocket APIs. Check them out!"
+      "title": "Coming Soon",
+      "message": "New APIs Will Be Added In Future Wait For It!"
     }
   ]
 }
