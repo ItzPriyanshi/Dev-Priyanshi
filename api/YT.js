@@ -3,7 +3,7 @@ const axios = require("axios");
 const meta = {
     name: "YouTubeV2",
     version: "1.5.0",
-    description: "Fetch YouTube video information using iloveyt.net",
+    description: "Fetch YouTube video information and download links",
     author: "LocDev",
     method: "get",
     category: "social",
@@ -57,7 +57,7 @@ async function onStart({ res, req }) {
             data: videoData,
             url: url,
             timestamp: new Date().toISOString(),
-            powered_by: "Wataru API"
+            powered_by: "Priyanshi's API"
         });
     } catch (error) {
         console.error("Error Fetching Data:", error.message);
