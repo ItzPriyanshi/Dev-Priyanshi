@@ -1,7 +1,7 @@
 const axios = require("axios");
 
 const meta = {
-    name: "youtube",
+    name: "YouTubeV2",
     version: "1.5.0",
     description: "Fetch YouTube video information using iloveyt.net",
     author: "LocDev",
