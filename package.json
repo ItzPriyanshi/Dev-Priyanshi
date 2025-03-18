@@ -1,5 +1,5 @@
 {
-  "name": "wataru-api",
+  "name": "Priyanshi's Api",
   "version": "1.0.0",
   "description": "A simple and customizable API documentation interface built with Express.js. Based on rynn-ui by Rynn",
   "main": "index.js",
@@ -15,6 +15,7 @@
     "chalk": "^4.1.2",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",
+    "crypto-js": "^4.2.0",
     "express": "^4.19.2",
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
