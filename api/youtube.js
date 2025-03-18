@@ -2,7 +2,7 @@ const axios = require('axios');
 const CryptoJS = require('crypto-js');
 
 const meta = {
-  name: "youtube",
+  name: "YouTube",
   version: "1.0.0",
   description: "API endpoint for YouTube video information and processing",
   author: "Priyanshi Kaur", 
