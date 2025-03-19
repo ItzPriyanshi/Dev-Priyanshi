@@ -6,7 +6,7 @@ const meta = {
     description: "Fetch YouTube video information and download links",
     author: "LocDev",
     method: "get",
-    category: "Downloader",
+    category: "downloader",
     path: "/youtube?url="
 };
 
