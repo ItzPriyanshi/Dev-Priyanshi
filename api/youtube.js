@@ -7,7 +7,7 @@ const meta = {
   description: "API endpoint for YouTube video information and processing",
   author: "Priyanshi Kaur", 
   method: "get",
-  category: "Downloader",
+  category: "downloader",
   path: "/youtube?url="
 };
 
