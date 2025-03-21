@@ -2,18 +2,18 @@ const youtubesearchapi = require("youtube-search-api");
 const axios = require("axios");
 
 const meta = {
-  name: "YouTubV3",
+  name: "YouTubeV3",
   version: "2.0.0",
   description: "API endpoint for searching YouTube videos and getting download links",
   author: "Priyansh Rajput",
   method: "get",
-  category: "downloader",
+  category: "social",
   path: "/youtube/search?query="
 };
 
 async function onStart({ res, req }) {
   // Extract the 'query' parameter from the query string
-  const { query, limit = 3 } = req.query;
+  const { query } = req.query;
 
   if (!query) {
     return res.status(400).json({
@@ -25,8 +25,8 @@ async function onStart({ res, req }) {
   try {
     console.log("Search Query:", query);
     
-    // Search YouTube videos using the API
-    const searchResults = await youtubesearchapi.GetListByKeyword(query, false, parseInt(limit));
+    // Search YouTube videos using the API - only get the top result
+    const searchResults = await youtubesearchapi.GetListByKeyword(query, false, 1);
 
     if (!searchResults.items || searchResults.items.length === 0) {
       return res.status(404).json({
@@ -35,55 +35,58 @@ async function onStart({ res, req }) {
       });
     }
 
-    // Process and enhance the search results with download links
-    const results = await Promise.all(searchResults.items.map(async (video) => {
-      // Basic video information
-      const videoInfo = {
-        title: video.title,
-        id: video.id,
-        url: `https://www.youtube.com/watch?v=${video.id}`,
-        duration: video.length?.simpleText || "N/A",
-        views: video.viewCount?.text || "N/A",
-        author: video.channelTitle,
-        thumbnail: video.thumbnail?.thumbnails?.pop()?.url || null
-      };
+    // Get the first result (top match)
+    const topVideo = searchResults.items[0];
+    const videoId = topVideo.id;
+    
+    // Get download links for both audio and video
+    try {
+      const audioResponse = await axios.get(
+        `https://priyansh-ai.onrender.com/youtube?id=${videoId}&type=audio&apikey=priyansh-here`
+      );
+      
+      const videoResponse = await axios.get(
+        `https://priyansh-ai.onrender.com/youtube?id=${videoId}&type=video&apikey=priyansh-here`
+      );
 
-      // Get download links for both audio and video
-      try {
-        const audioResponse = await axios.get(
-          `https://priyansh-ai.onrender.com/youtube?id=${video.id}&type=audio&apikey=priyansh-here`
-        );
-        
-        const videoResponse = await axios.get(
-          `https://priyansh-ai.onrender.com/youtube?id=${video.id}&type=video&apikey=priyansh-here`
-        );
+      // Extract the download URLs
+      const audioDownloadUrl = audioResponse.data.downloadUrl || 
+                             (audioResponse.data.data && audioResponse.data.data.downloadUrl) || 
+                             null;
+                             
+      const videoDownloadUrl = videoResponse.data.downloadUrl || 
+                             (videoResponse.data.data && videoResponse.data.data.downloadUrl) || 
+                             null;
 
-        // Add download URLs if available
-        if (audioResponse.data && audioResponse.data.status) {
-          videoInfo.audioDownload = audioResponse.data.downloadUrl || null;
-        }
+      // Return the processed results
+      return res.json({
+        status: true,
+        query: query,
+        video: {
+          title: topVideo.title,
+          id: videoId,
+          url: `https://www.youtube.com/watch?v=${videoId}`,
+          duration: topVideo.length?.simpleText || "N/A",
+          views: topVideo.viewCount?.text || "N/A",
+          author: topVideo.channelTitle,
+          thumbnail: topVideo.thumbnail?.thumbnails?.pop()?.url || null
+        },
+        downloads: {
+          audio: audioDownloadUrl,
+          video: videoDownloadUrl
+        },
+        timestamp: new Date().toISOString(),
+        powered_by: "YouTube Search API v2.0.0"
+      });
 
-        if (videoResponse.data && videoResponse.data.status) {
-          videoInfo.videoDownload = videoResponse.data.downloadUrl || null;
-        }
-      } catch (error) {
-        console.error(`Error fetching download links for ${video.id}:`, error.message);
-        // Continue with the process even if download links fail
-        videoInfo.downloadError = "Could not retrieve download links";
-      }
-
-      return videoInfo;
-    }));
-
-    // Return the processed results
-    return res.json({
-      status: true,
-      query: query,
-      count: results.length,
-      data: results,
-      timestamp: new Date().toISOString(),
-      powered_by: "YouTube Search API v2.0.0"
-    });
+    } catch (error) {
+      console.error(`Error fetching download links for ${videoId}:`, error.message);
+      return res.status(500).json({
+        status: false,
+        error: "Failed to retrieve download links",
+        message: error.message
+      });
+    }
 
   } catch (error) {
     console.error("API Error:", error.message);
@@ -94,7 +97,7 @@ async function onStart({ res, req }) {
   }
 }
 
-// Function to get a single video by ID with download links
+// Function to get download links directly by video ID
 async function getVideoById({ res, req }) {
   const { id } = req.params;
   
@@ -106,7 +109,7 @@ async function getVideoById({ res, req }) {
   }
   
   try {
-    console.log("Fetching video by ID:", id);
+    console.log("Fetching download links for video ID:", id);
     
     // Get both audio and video download links
     const [audioResponse, videoResponse] = await Promise.all([
@@ -114,18 +117,25 @@ async function getVideoById({ res, req }) {
       axios.get(`https://priyansh-ai.onrender.com/youtube?id=${id}&type=video&apikey=priyansh-here`)
     ]);
     
-    const result = {
-      id: id,
-      url: `https://www.youtube.com/watch?v=${id}`,
-      audioDownload: audioResponse.data.downloadUrl || null,
-      videoDownload: videoResponse.data.downloadUrl || null,
-      timestamp: new Date().toISOString(),
-      powered_by: "Priyanshi's API"
-    };
+    // Extract the download URLs
+    const audioDownloadUrl = audioResponse.data.downloadUrl || 
+                           (audioResponse.data.data && audioResponse.data.data.downloadUrl) || 
+                           null;
+                           
+    const videoDownloadUrl = videoResponse.data.downloadUrl || 
+                           (videoResponse.data.data && videoResponse.data.data.downloadUrl) || 
+                           null;
     
     return res.json({
       status: true,
-      data: result
+      id: id,
+      url: `https://www.youtube.com/watch?v=${id}`,
+      downloads: {
+        audio: audioDownloadUrl,
+        video: videoDownloadUrl
+      },
+      timestamp: new Date().toISOString(),
+      powered_by: "Priyanshi's API"
     });
     
   } catch (error) {
