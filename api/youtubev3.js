@@ -2,12 +2,12 @@ const youtubesearchapi = require("youtube-search-api");
 const axios = require("axios");
 
 const meta = {
-  name: "youtube",
-  version: "3.0.0",
+  name: "YouTubV3",
+  version: "2.0.0",
   description: "API endpoint for searching YouTube videos and getting download links",
   author: "Priyansh Rajput",
   method: "get",
-  category: "social",
+  category: "downloader",
   path: "/youtube/search?query="
 };
 
@@ -60,15 +60,11 @@ async function onStart({ res, req }) {
 
         // Add download URLs if available
         if (audioResponse.data && audioResponse.data.status) {
-          videoInfo.audioDownload = audioResponse.data.downloadUrl || 
-                                   (audioResponse.data.data?.downloadUrl) || 
-                                   null;
+          videoInfo.audioDownload = audioResponse.data.downloadUrl || null;
         }
 
         if (videoResponse.data && videoResponse.data.status) {
-          videoInfo.videoDownload = videoResponse.data.downloadUrl || 
-                                   (videoResponse.data.data?.downloadUrl) || 
-                                   null;
+          videoInfo.videoDownload = videoResponse.data.downloadUrl || null;
         }
       } catch (error) {
         console.error(`Error fetching download links for ${video.id}:`, error.message);
@@ -86,7 +82,7 @@ async function onStart({ res, req }) {
       count: results.length,
       data: results,
       timestamp: new Date().toISOString(),
-      powered_by: "Priyanshi's API"
+      powered_by: "YouTube Search API v2.0.0"
     });
 
   } catch (error) {
@@ -121,14 +117,10 @@ async function getVideoById({ res, req }) {
     const result = {
       id: id,
       url: `https://www.youtube.com/watch?v=${id}`,
-      audioDownload: audioResponse.data.downloadUrl || 
-                     (audioResponse.data.data?.downloadUrl) || 
-                     null,
-      videoDownload: videoResponse.data.downloadUrl || 
-                     (videoResponse.data.data?.downloadUrl) || 
-                     null,
+      audioDownload: audioResponse.data.downloadUrl || null,
+      videoDownload: videoResponse.data.downloadUrl || null,
       timestamp: new Date().toISOString(),
-      powered_by: "YouTube Search API v2.0.0"
+      powered_by: "Priyanshi's API"
     };
     
     return res.json({
