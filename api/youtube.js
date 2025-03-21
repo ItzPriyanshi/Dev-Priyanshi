@@ -3,7 +3,7 @@ const CryptoJS = require('crypto-js');
 
 const meta = {
   name: "YouTube",
-  version: "1.0.0",
+  version: "1.5.0",
   description: "API endpoint for YouTube video information and processing",
   author: "Priyanshi Kaur", 
   method: "get",
@@ -63,47 +63,82 @@ async function fetchMediaUrl(url) {
     const encryptedData = encryptData(JSON.stringify({ url, unlock: true }));
     const response = await getAioJ2(encryptedData);
     
-    if (response && response.data && response.data.mediaUrl) {
-      return response.data.mediaUrl;
+    if (response && response.data) {
+      const data = response.data;
+      
+      // Extract media information from response
+      const mediaUrl = data.mediaUrl;
+      const mediaId = data.mediaId;
+      const mediaQuality = data.mediaQuality;
+      const mediaDuration = data.mediaDuration;
+      const mediaExtension = data.mediaExtension;
+      const mediaFileSize = data.mediaFileSize;
+      const mediaThumbnail = data.mediaThumbnail;
+      
+      return {
+        mediaUrl,
+        mediaId,
+        mediaQuality,
+        mediaDuration,
+        mediaExtension,
+        mediaFileSize,
+        mediaThumbnail
+      };
     }
-    throw new Error("Media URL not found in response");
+    throw new Error("Media information not found in response");
   } catch (error) {
-    throw new Error(`Failed to fetch media URL: ${error.message}`);
+    throw new Error(`Failed to fetch media information: ${error.message}`);
   }
 }
 
-async function fetchFileUrl(mediaUrl, maxRetries = 10) {
-  let percent = 0;
+async function fetchFileUrl(mediaUrl, maxWaitTime = 3000) {
   let fileUrl = null;
-  let attempt = 0;
+  let fileSize = null;
+  let fileName = null;
+  let percent = 0;
   
-  while (percent < 100 && attempt < maxRetries) {
+  try {
+    const encryptedData = encryptData(JSON.stringify({ mediaUrl, unlock: true }));
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), maxWaitTime);
+    
     try {
-      const encryptedData = encryptData(JSON.stringify({ mediaUrl, unlock: true }));
-      const response = await getAioJ2(encryptedData);
-      
-      if (response && response.data) {
-        percent = response.data.percent || 0;
-        
-        if (response.data.fileUrl) {
-          fileUrl = response.data.fileUrl;
-          break;
+      const response = await axios.post(
+        'https://api.zm.io.vn/v1/social/autolink',
+        { data: encryptedData },
+        { 
+          headers,
+          signal: controller.signal
         }
+      );
+      
+      clearTimeout(timeoutId);
+      
+      if (response && response.data && response.data.data) {
+        const data = response.data.data;
         
-        if (percent >= 100) {
-          break;
+        if (data.percent === "Completed" && data.fileUrl) {
+          fileUrl = data.fileUrl;
+          fileSize = data.fileSize || data.estimatedFileSize;
+          fileName = data.fileName;
+          percent = "Completed";
         }
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      attempt++;
     } catch (error) {
-      attempt++;
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      clearTimeout(timeoutId);
+      console.log("Fallback to mediaUrl due to timeout or error");
     }
+  } catch (error) {
+    console.error("Error in fetchFileUrl:", error.message);
   }
   
-  return { percent, fileUrl };
+  return { 
+    percent, 
+    fileUrl, 
+    fileSize, 
+    fileName 
+  };
 }
 
 async function onStart({ res, req }) {
@@ -119,33 +154,36 @@ async function onStart({ res, req }) {
   try {
     console.log("Request URL:", url);
 
-    const mediaUrl = await fetchMediaUrl(url);
-    console.log("Media URL:", mediaUrl);
+    const mediaInfo = await fetchMediaUrl(url);
+    console.log("Media Info:", mediaInfo);
     
-    const { percent, fileUrl } = await fetchFileUrl(mediaUrl);
+    const { percent, fileUrl, fileSize, fileName } = await fetchFileUrl(mediaInfo.mediaUrl);
     console.log("Download Percent:", percent);
-    console.log("File URL:", fileUrl);
+    console.log("File URL:", fileUrl || "Using mediaUrl as fallback");
 
     const formats = [];
+    const downloadUrl = fileUrl || mediaInfo.mediaUrl;
     
-    if (fileUrl) {
+    if (downloadUrl) {
       formats.push({
-        quality: "HD",
-        type: "mp4",
-        url: fileUrl,
-        size: "Unknown"
+        quality: mediaInfo.mediaQuality || "HD",
+        type: mediaInfo.mediaExtension || "mp4",
+        url: downloadUrl,
+        size: fileSize || mediaInfo.mediaFileSize || "Unknown"
       });
     }
     
     return res.json({
       status: true,
       data: {
-        title: "YouTube Video",
-        thumbnail: "",
-        duration: "Unknown",
-        mediaUrl: mediaUrl,
-        percent: percent,
-        fileUrl: fileUrl || mediaUrl,
+        title: fileName || "YouTube Video",
+        thumbnail: mediaInfo.mediaThumbnail || "",
+        duration: mediaInfo.mediaDuration || "Unknown",
+        mediaUrl: mediaInfo.mediaUrl,
+        percent: percent || 0,
+        fileUrl: downloadUrl,
+        fileSize: fileSize || mediaInfo.mediaFileSize,
+        fileName: fileName,
         formats: formats
       },
       url: url,
