@@ -11,7 +11,6 @@ const meta = {
   path: "/youtube?url="
 };
 
-// Important constants
 const J2DOWN_SECRET = 'U2FsdGVkX18wVfoTqTpAQwAnu9WB9osIMSnldIhYg6rMvFJkhpT6eUM9YqgpTrk41mk8calhYvKyhGF0n26IDXNmtXqI8MjsXtsq0nnAQLROrsBuLnu4Mzu63mpJsGyw';
 
 const headers = {
@@ -19,7 +18,6 @@ const headers = {
   token: 'eyJ0eXAiOiJqd3QiLCJhbGciOiJIUzI1NiJ9.eyJxxx',
 };
 
-// Helper functions
 function randomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -60,8 +58,55 @@ async function getAioJ2(data) {
   return response.data;
 }
 
+async function fetchMediaUrl(url) {
+  try {
+    const encryptedData = encryptData(JSON.stringify({ url, unlock: true }));
+    const response = await getAioJ2(encryptedData);
+    
+    if (response && response.data && response.data.mediaUrl) {
+      return response.data.mediaUrl;
+    }
+    throw new Error("Media URL not found in response");
+  } catch (error) {
+    throw new Error(`Failed to fetch media URL: ${error.message}`);
+  }
+}
+
+async function fetchFileUrl(mediaUrl, maxRetries = 10) {
+  let percent = 0;
+  let fileUrl = null;
+  let attempt = 0;
+  
+  while (percent < 100 && attempt < maxRetries) {
+    try {
+      const encryptedData = encryptData(JSON.stringify({ mediaUrl, unlock: true }));
+      const response = await getAioJ2(encryptedData);
+      
+      if (response && response.data) {
+        percent = response.data.percent || 0;
+        
+        if (response.data.fileUrl) {
+          fileUrl = response.data.fileUrl;
+          break;
+        }
+        
+        if (percent >= 100) {
+          break;
+        }
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      attempt++;
+    } catch (error) {
+      attempt++;
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+  }
+  
+  return { percent, fileUrl };
+}
+
 async function onStart({ res, req }) {
-  // Extract the 'url' parameter from the query string
   const { url } = req.query;
 
   if (!url) {
@@ -73,19 +118,36 @@ async function onStart({ res, req }) {
 
   try {
     console.log("Request URL:", url);
+
+    const mediaUrl = await fetchMediaUrl(url);
+    console.log("Media URL:", mediaUrl);
     
-    // Encrypt the data using the provided encryption function
-    const encryptedData = encryptData(JSON.stringify({ url, unlock: true }));
-    console.log("Encrypted Data:", encryptedData);
+    const { percent, fileUrl } = await fetchFileUrl(mediaUrl);
+    console.log("Download Percent:", percent);
+    console.log("File URL:", fileUrl);
+
+    const formats = [];
     
-    // Make request to external API
-    const data = await getAioJ2(encryptedData);
-    console.log("API Response:", data);
+    if (fileUrl) {
+      formats.push({
+        quality: "HD",
+        type: "mp4",
+        url: fileUrl,
+        size: "Unknown"
+      });
+    }
     
-    // Return the response from the external API
     return res.json({
       status: true,
-      data: data,
+      data: {
+        title: "YouTube Video",
+        thumbnail: "",
+        duration: "Unknown",
+        mediaUrl: mediaUrl,
+        percent: percent,
+        fileUrl: fileUrl || mediaUrl,
+        formats: formats
+      },
       url: url,
       timestamp: new Date().toISOString(),
       powered_by: "Priyanshi's API"
