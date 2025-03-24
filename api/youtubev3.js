@@ -7,7 +7,7 @@ const meta = {
   description: "API endpoint for searching YouTube videos and getting download links",
   author: "Priyansh Rajput",
   method: "get",
-  category: "social",
+  category: "downloader",
   path: "/youtube/search?query="
 };
 
