@@ -6,7 +6,7 @@ const meta = {
   description: "Search YouTube videos and return top 3 results",
   author: "Priyanshi Kaur",
   method: "get",
-  category: "Social",
+  category: "search",
   path: "/ytsearch?query="
 };
 
