@@ -6,7 +6,7 @@ const meta = {
     description: "API endpoint for Spotify track information and processing",
     author: "AJ•KING",
     method: "get",
-    category: "social",
+    category: "downloader",
     path: "/spotify?url="
 };
 
@@ -55,7 +55,7 @@ async function onStart({ res, req }) {
 
     return res.status(500).json({
         status: false,
-        error: 'Unable to fetch Spotify track information with any of the provided API keys'
+        error: 'Unable to fetch Spotify track information ! '
     });
 }
 
