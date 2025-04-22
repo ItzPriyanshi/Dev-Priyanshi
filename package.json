@@ -21,6 +21,7 @@
     "express": "^4.19.2",
     "fs.promises": "^0.1.2",
     "fs": "^0.0.1-security",
+    "fs-extra": "^11.3.0",
     "googleapis": "^134.0.0",
     "globalsprak": "^1.0.7",
     "https": "^1.0.0",
