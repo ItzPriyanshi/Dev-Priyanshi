@@ -34,7 +34,7 @@ app.use((req, res, next) => {
     if (data && typeof data === 'object') {
       const responseData = {
         status: data.status,
-        creator: (settings.apiSettings && settings.apiSettings.creator) || "Created Using Rynn UI",
+        operator: (settings.apiSettings && settings.apiSettings.operator) || "Created Using Rynn UI",
         ...data
       };
       return originalJson.call(this, responseData);
@@ -114,11 +114,6 @@ app.get('/api/info', (req, res) => {
 // Serve index.html for the root route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'web', 'portal.html'));
-});
-
-// Add route for the test POST API form
-app.get('/test-post', (req, res) => {
-  res.sendFile(path.join(__dirname, 'web', 'test-post.html'));
 });
 
 app.get('/docs', (req, res) => {
