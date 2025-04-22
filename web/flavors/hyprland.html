@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Simple and Easy-to-Use API Documentation" />
+  <meta name="theme-color" content="#121212" />
+  <!-- The title will be overwritten by the settings.json config -->
+  <title>API Dashboard</title>
+
+  <!-- Preconnect & Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+
+  <!-- Material Icons -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif']
+          },
+          colors: {
+            darkBg: "#0a0a14",
+            primary: {
+              50: '#f3e8ff',
+              100: '#e9d5ff',
+              200: '#d8b4fe',
+              300: '#c084fc',
+              400: '#a855f7',
+              500: '#9333ea',
+              600: '#7e22ce',
+              700: '#6b21a8',
+              800: '#581c87',
+              900: '#4c1d95'
+            },
+            pink: {
+              50: '#fdf2f8',
+              100: '#fce7f3',
+              200: '#fbcfe8',
+              300: '#f9a8d4',
+              400: '#f472b6',
+              500: '#ec4899',
+              600: '#db2777',
+              700: '#be185d',
+              800: '#9d174d',
+              900: '#831843'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Particles.js library -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <style>
+    /* Overall dark background */
+    body {
+      background-color: #0a0a14;
+      color: #e4e4e7;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+    /* Prevent scrolling on the main content when the sidebar is open */
+    body.sidebar-open {
+      overflow: hidden;
+    }
+    /* Particles container */
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      top: 0;
+      left: 0;
+    }
+    /* Gradient text style */
+    .gradient-text {
+      background: linear-gradient(135deg, #9333ea, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    /* Glass card style with gradient border/background */
+    .glass-card {
+      background: linear-gradient(135deg, rgba(147,51,234,0.1), rgba(236,72,153,0.1));
+      border: 2px solid transparent;
+      border-image: linear-gradient(135deg, #9333ea, #ec4899) 1;
+      backdrop-filter: blur(10px);
+    }
+    /* Header styles for home and sidebar (exactly matching) */
+    .header-bg,
+    .sidebar-bg {
+      /* Using the same glass-card design */
+      background: linear-gradient(135deg, rgba(147,51,234,0.1), rgba(236,72,153,0.1));
+      border: 2px solid transparent;
+      border-image: linear-gradient(135deg, #9333ea, #ec4899) 1;
+      backdrop-filter: blur(10px);
+    }
+    /* Gradient button style matching glass cards */
+    .gradient-btn {
+      background: linear-gradient(135deg, rgba(147,51,234,0.1), rgba(236,72,153,0.1));
+      border: 2px solid transparent;
+      border-image: linear-gradient(135deg, #9333ea, #ec4899) 1;
+      color: #fff;
+      backdrop-filter: blur(10px);
+    }
+    :focus-visible {
+      outline: 2px solid #7c3aed;
+      outline-offset: 2px;
+    }
+    /* Sidebar styles */
+    #sidebar {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      width: 320px;
+    }
+    #sidebar-content {
+      overflow-y: auto;
+      flex-grow: 1;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(124,58,237,0.3) rgba(0,0,0,0.1);
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+    ::-webkit-scrollbar-thumb {
+      background-color: rgba(124,58,237,0.3);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background-color: rgba(124,58,237,0.5); }
+    #main-content {
+      transition: margin-left 0.3s cubic-bezier(0,0,0.2,1);
+    }
+    /* Loading Screen with animated gradient background */
+    #loadingScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0a0a14, #1a1a2e, #0f3460);
+      background-size: 400% 400%;
+      animation: gradientAnimation 10s ease infinite;
+    }
+    @keyframes gradientAnimation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    /* Enhanced loading spinner with glow effect */
+    .loading-spinner {
+      display: inline-block;
+      width: 2rem;
+      height: 2rem;
+      border: 3px solid rgba(124, 58, 237, 0.2);
+      border-radius: 50%;
+      border-top-color: #9333ea;
+      border-left-color: #ec4899;
+      animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+      box-shadow: 0 0 15px rgba(147, 51, 234, 0.5);
+    }
+    @keyframes spin { 
+      to { transform: rotate(360deg); } 
+    }
+    /* Loading bar animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    #loadingBar {
+      animation: pulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 10px rgba(147, 51, 234, 0.7);
+    }
+    /* Ripple effect */
+    .ripple {
+      position: relative;
+      overflow: hidden;
+      transform: translate3d(0,0,0);
+    }
+    .ripple:after {
+      content: "";
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+      background-repeat: no-repeat;
+      background-position: 50%;
+      transform: scale(10,10);
+      opacity: 0;
+      transition: transform .5s, opacity 1s;
+    }
+    .ripple:active:after {
+      transform: scale(0,0);
+      opacity: .3;
+      transition: 0s;
+    }
+    @media (min-width: 1024px) {
+      #sidebar { transform: translateX(0)!important; }
+      #main-content { margin-left: 320px; }
+    }
+    @media (max-width: 1023px) {
+      #sidebar { transform: translateX(-100%); }
+      body.sidebar-open #sidebar { transform: translateX(0); }
+      body.sidebar-open #overlay { display: block; }
+    }
+    .fade-in { animation: fadeIn 0.3s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .slide-in { animation: slideIn 0.3s cubic-bezier(0.4,0,0.2,1); }
+    @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .fade-in, .slide-in { animation: none !important; opacity: 1; transform: translateY(0); }
+    }
+    /* Fully blur the notification panel with an opaque background */
+    #notificationPanel {
+      backdrop-filter: blur(20px);
+      background: rgba(0, 0, 0, 0.8);
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans flex">
+  <!-- Particles.js container -->
+  <div id="particles-js"></div>
+
+  <!-- Skip to main content link for accessibility -->
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:p-4 focus:bg-primary-700 focus:text-white focus:z-50">
+    Skip to main content
+  </a>
+
+  <!-- Global Loading Screen -->
+  <div id="loadingScreen" class="fixed inset-0 z-50 flex flex-col items-center justify-center transition-opacity duration-300" aria-live="polite" aria-busy="true">
+    <div class="relative w-64 h-4 bg-gray-800 rounded-full overflow-hidden mb-6">
+      <div id="loadingBar" class="absolute left-0 top-0 h-full w-0 bg-gradient-to-r from-primary-600 to-pink-500 rounded-full transition-all duration-1000"></div>
+    </div>
+    <div class="loading-spinner mb-6"></div>
+    <p class="text-pink-200 text-xl font-medium mt-2">Loading dashboard...</p>
+  </div>
+
+  <!-- Overlay for mobile -->
+  <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden lg:hidden backdrop-blur-sm" aria-hidden="true"></div>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="glass-card fixed inset-y-0 left-0 z-30" aria-label="Sidebar navigation">
+    <div class="flex flex-col h-full">
+      <!-- Sidebar Header -->
+      <div class="h-16 glass-card flex-shrink-0 flex items-center px-4">
+        <div id="sidebarHeaderDefault" class="flex items-center w-full justify-between">
+          <h2 class="text-lg font-medium text-white gradient-text">Jea's Api</h2>
+          <button id="sidebarSearchIcon" class="icon-circle w-10 h-10 hover:bg-purple-700/20 rounded-full transition-colors ripple" aria-label="Search APIs">
+            <span class="material-icons-round text-purple-300" style="font-size: 20px;">search</span>
+          </button>
+        </div>
+        <div id="sidebarSearchBar" class="hidden w-full">
+          <div class="flex items-center w-full">
+            <div class="relative w-full">
+              <input type="text" id="api-search" placeholder="Search APIs..." 
+                     class="w-full p-2 pl-3 pr-8 rounded-md bg-black bg-opacity-50 border border-purple-700/30 text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                     aria-label="Search APIs">
+              <button id="clearSearch" class="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 hover:text-purple-300 transition-colors" aria-label="Clear search">
+                <span class="material-icons-round" style="font-size: 18px;">close</span>
+              </button>
+            </div>
+            <button id="closeSearch" class="ml-2 px-3 py-2 hover:bg-purple-700/20 rounded-md transition-colors ripple" aria-label="Close search">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Sidebar Content -->
+      <div id="sidebar-content" class="flex-grow overflow-y-auto p-4">
+        <div class="flex justify-center items-center h-32">
+          <div class="loading-spinner" aria-label="Loading API categories"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div id="main-content" class="flex-1 flex flex-col min-h-screen relative z-10">
+    <!-- Home Header -->
+    <header class="glass-card fixed top-0 left-0 right-0 h-16 flex-shrink-0 flex items-center px-4 transition-colors duration-200 sticky z-10">
+      <button id="menuButton" class="icon-circle w-10 h-10 hover:bg-purple-700/20 rounded-full lg:hidden transition-colors ripple" aria-label="Toggle menu" aria-expanded="false" aria-controls="sidebar">
+        <span class="material-icons-round text-gray-200" style="font-size: 24px;">menu</span>
+      </button>
+      <h1 class="text-lg font-medium flex-1 text-center lg:text-left lg:ml-2 gradient-text">Jea UI</h1>
+      <!-- Notification Button -->
+      <div class="flex items-center">
+        <div class="relative">
+          <button id="notificationButton" class="icon-circle w-10 h-10 hover:bg-purple-700/20 rounded-full relative transition-colors ripple" aria-label="Notifications" aria-haspopup="true" aria-expanded="false" aria-controls="notificationPanel">
+            <span class="material-icons-round text-gray-300" style="font-size: 20px;">notifications</span>
+            <span id="notificationBadge" class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold text-white bg-purple-600 rounded-full"></span>
+          </button>
+          <div id="notificationPanel" class="modal-bg absolute right-0 mt-2 w-80 rounded-lg hidden z-40 fade-in border border-gray-700 overflow-hidden" role="menu" aria-labelledby="notificationButton"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="flex flex-col items-center justify-center text-center py-12 px-4 space-y-6 mt-20">
+      <h2 class="text-4xl font-bold gradient-text">Jea's Api</h2>
+      <p class="max-w-2xl text-lg text-gray-200">
+        Simple and Easy-to-Use API Documentation
+      </p>
+      <div class="flex space-x-4">
+        <a id="githubLink" href="#" target="_blank" rel="noopener noreferrer" class="gradient-btn px-6 py-2 rounded-md shadow-md transition-colors ripple">
+          Source Code
+        </a>
+        <a id="telegramLink" href="#" target="_blank" rel="noopener noreferrer" class="gradient-btn px-6 py-2 rounded-md shadow-md transition-colors ripple">
+          Contact Me
+        </a>
+      </div>
+    </section>
+
+    <!-- Stats Cards -->
+    <div class="grid gap-4 md:grid-cols-2 fade-in slide-in px-4">
+      <div class="glass-card rounded-lg p-5 shadow-lg border border-transparent card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="icon-circle w-12 h-12 bg-purple-900/50 flex items-center justify-center" aria-hidden="true">
+              <span class="material-icons-round text-purple-400" style="font-size: 28px;">dns</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-300">Total Endpoints</h3>
+              <p class="text-3xl font-bold text-white total-endpoints" aria-live="polite">
+                <span class="loading-spinner mr-2"></span>
+                <span class="sr-only">Loading endpoint count</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card rounded-lg p-5 shadow-lg border border-transparent card-hover">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="icon-circle w-12 h-12 bg-purple-900/50 flex items-center justify-center" aria-hidden="true">
+              <span class="material-icons-round text-purple-400" style="font-size: 28px;">category</span>
+            </div>
+            <div>
+              <h3 class="text-sm font-medium text-gray-300">Total Categories</h3>
+              <p class="text-3xl font-bold text-white total-categories" aria-live="polite">
+                <span class="loading-spinner mr-2"></span>
+                <span class="sr-only">Loading category count</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured APIs Section – Top 5 Most Used (Individual Cards Only) -->
+    <section class="fade-in slide-in mx-4 my-6" aria-labelledby="featured-apis-heading">
+      <div class="flex items-center space-x-2 mb-4">
+        <span class="material-icons-round text-purple-400" aria-hidden="true">star</span>
+        <h2 id="featured-apis-heading" class="text-xl font-medium text-white">Top 5 Most Used APIs</h2>
+      </div>
+      <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3" id="featuredApis" aria-live="polite">
+        <!-- Top 5 APIs will be populated dynamically as individual cards -->
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="glass-card shadow-lg mt-auto border-t border-transparent mx-4 my-6">
+      <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <p class="text-sm text-gray-300 text-center">
+          &copy; <span id="current-year"></span> <span id="creator">AjiroDesu</span>
+        </p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- API Response Modal -->
+  <div id="apiResponseModal" class="fixed inset-0 z-50 bg-black bg-opacity-70 hidden overflow-y-auto backdrop-blur-sm" aria-labelledby="apiResponseModalLabel" aria-modal="true" role="dialog">
+    <div class="min-h-screen flex items-center justify-center p-4">
+      <div class="glass-card modal-bg border border-transparent rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-lg fade-in slide-in">
+        <!-- Modal Header -->
+        <div class="flex justify-between items-start p-6 border-b border-transparent modal-bg rounded-t-xl">
+          <div>
+            <h3 class="text-xl font-medium text-white" id="apiResponseModalLabel"></h3>
+            <p class="text-gray-300 text-sm mt-1" id="apiResponseModalDesc"></p>
+          </div>
+          <button type="button" id="closeModalBtn" class="icon-circle w-10 h-10 text-gray-300 hover:text-white hover:bg-black hover:bg-opacity-50 transition-colors ripple rounded-full" aria-label="Close modal">
+            <span class="material-icons-round">close</span>
+          </button>
+        </div>
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto flex-1">
+          <div class="glass-card rounded-lg p-4 border border-transparent mb-6" id="apiEndpointContainer">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-medium text-gray-300">Endpoint URL</h4>
+              <button id="copyEndpointBtn" class="text-purple-400 hover:text-purple-300 p-1 rounded-full hover:bg-purple-900/30 transition-colors text-xs flex items-center space-x-1 ripple" aria-label="Copy endpoint URL">
+                <span class="material-icons-round" style="font-size: 16px;">content_copy</span>
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre id="apiEndpoint" class="text-purple-300 text-sm overflow-x-auto font-mono"></pre>
+          </div>
+          <div id="apiQueryInputContainer" class="space-y-4" aria-live="polite"></div>
+          <div id="apiResponseLoading" class="hidden py-12 flex justify-center" aria-live="polite" aria-busy="true">
+            <div class="relative w-12 h-12">
+              <div class="absolute inset-0 border-4 border-purple-600/30 border-t-purple-400 rounded-full animate-spin"></div>
+            </div>
+          </div>
+          <div id="apiResponseContainer" class="hidden mt-6" aria-live="polite">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-sm font-medium text-gray-300">Response</h4>
+              <button id="copyResponseBtn" class="text-purple-400 hover:text-purple-300 p-1 rounded-full hover:bg-purple-900/30 transition-colors text-xs flex items-center space-x-1 ripple" aria-label="Copy response">
+                <span class="material-icons-round" style="font-size: 16px;">content_copy</span>
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre id="apiResponseContent" class="glass-card rounded-lg p-4 text-gray-300 text-sm overflow-x-auto font-mono border border-transparent"></pre>
+          </div>
+        </div>
+        <!-- Modal Footer -->
+        <div class="p-6 border-t border-transparent modal-bg rounded-b-xl">
+          <button id="submitQueryBtn" class="hidden px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center space-x-2 ripple" aria-live="polite">
+            <span class="material-icons-round" style="font-size: 18px;">send</span>
+            <span>Submit</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* Ajiro API Dashboard */
+    class AjiroApiDashboard {
+      constructor() {
+        this.apiCache = new Map();
+        this.sidebar = document.getElementById('sidebar');
+        this.mainContent = document.getElementById('main-content');
+        this.overlay = document.getElementById('overlay');
+    
