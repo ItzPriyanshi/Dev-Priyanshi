@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <!-- Basic Meta Tags -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="API Dashboard – Explore, test, and interact with APIs in a sleek, modern interface built for a superior user experience." />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" href="/icon.png" type="image/png" />
+    <title>API Dashboard</title>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "API Dashboard",
+        "description": "Explore, test, and interact with APIs in a sleek, modern interface built for a superior user experience.",
+        "applicationCategory": "DeveloperTool",
+        "operatingSystem": "ALL"
+      }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#f5f3ff',
+                100: '#ede9fe',
+                200: '#ddd6fe',
+                300: '#c4b5fd',
+                400: '#a78bfa',
+                500: '#8b5cf6',
+                600: '#7c3aed',
+                700: '#6d28d9',
+                800: '#5b21b6',
+                900: '#4c1d95',
+                950: '#2e1065'
+              },
+              dark: {
+                950: '#09090b',
+                900: '#101014',
+                850: '#141418',
+                800: '#18181c',
+                700: '#1f1f23',
+                600: '#27272b',
+                500: '#2e2e32',
+                400: '#39393d'
+              },
+              accent: {
+                purple: '#9333ea',
+                pink: '#ec4899',
+                blue: '#3b82f6',
+                teal: '#14b8a6'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              heading: ['Poppins', 'sans-serif']
+            },
+            animation: {
+              'gradient-x': 'gradient-x 3s ease infinite',
+              'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'float': 'float 6s ease-in-out infinite'
+            },
+            keyframes: {
+              'gradient-x': {
+                '0%, 100%': { 'background-size': '200% 200%', 'background-position': 'left center' },
+                '50%': { 'background-size': '200% 200%', 'background-position': 'right center' }
+              },
+              'float': {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' }
+              }
+            },
+            boxShadow: {
+              'glow': '0 0 15px rgba(139, 92, 246, 0.5)',
+              'glow-sm': '0 0 5px rgba(139, 92, 246, 0.3)'
+            }
+          }
+        }
+      };
+    </script>
+
+    <!-- Custom CSS for Enhanced UI/UX -->
+    <style>
+      /* Smooth custom scrollbar for WebKit */
+      ::-webkit-scrollbar { width: 6px; height: 6px; }
+      ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.5); }
+
+      /* Basic animations */
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      .fadeIn { animation: fadeIn 0.5s ease forwards; }
+      @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      .slideUp { animation: slideUp 0.4s ease forwards; }
+
+      /* Sidebar expand/collapse animations */
+      .category-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+      .category-content.open { max-height: 1000px; }
+      .category-arrow { transition: transform 0.3s ease; }
+      .category-arrow.open { transform: rotate(90deg); }
+
+      /* Unified separator styling */
+      .unified-separator {
+        height: 1px;
+        background: linear-gradient(90deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.1));
+        position: absolute; left: 0; right: 0; bottom: -1px;
+        transition: opacity 0.3s ease;
+      }
+      @media (min-width: 1024px) { .unified-separator { left: 320px; } }
+
+      /* Input focus and search bar transitions */
+      #sidebarSearchContainer { transition: opacity 0.2s ease, transform 0.2s ease; }
+      #sidebarSearch:focus { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3); }
+
+      /* Card hover and shadow effects for depth */
+      .card-hover { transition: all 0.3s ease; border: 1px solid rgba(139, 92, 246, 0.1); position: relative; z-index: 1; overflow: hidden; }
+      .card-hover::before {
+        content: '';
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.05) 0%, rgba(236, 72, 153, 0.05) 100%);
+        opacity: 0; transition: opacity 0.3s ease; z-index: -1;
+      }
+      .card-hover:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+                    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border-color: rgba(139, 92, 246, 0.5);
+      }
+      .card-hover:hover::before { opacity: 1; }
+
+      /* Gradient text for a modern look */
+      .gradient-text {
+        background: linear-gradient(to right, #a78bfa, #ec4899);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+
+      /* Navbar header initial hidden state */
+      #header, #versionHeader { opacity: 0; transition: opacity 0.3s ease; }
+
+      /* Gradient border effect on interactive elements */
+      .gradient-border {
+        position: relative; border-radius: 0.75rem; background-clip: padding-box; z-index: 0;
+      }
+      .gradient-border::before {
+        content: '';
+        position: absolute; top: -1px; right: -1px; bottom: -1px; left: -1px;
+        z-index: -1; border-radius: inherit;
+        background: linear-gradient(135deg, #9333ea, #ec4899);
+        opacity: 0; transition: opacity 0.3s ease;
+      }
+      .gradient-border:hover::before { opacity: 1; }
+
+      /* Animated backgrounds for visual appeal */
+      .gradient-bg { background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 0, 0, 0) 100%); }
+      .animated-bg {
+        background: linear-gradient(270deg, #18181c, #27272b);
+        background-size: 200% 200%; animation: gradient-x 3s ease infinite;
+      }
+
+      /* Glass effect for overlays and modals */
+      .glass-effect {
+        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        background: rgba(24, 24, 28, 0.7); border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      /* Gradient button with dynamic hover state */
+      .gradient-button {
+        background: linear-gradient(to right, #9333ea, #ec4899);
+        transition: all 0.3s ease; position: relative; z-index: 1;
+      }
+      .gradient-button::before {
+        content: '';
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: linear-gradient(to right, #7c3aed, #db2777);
+        opacity: 0; transition: opacity 0.3s ease; border-radius: inherit; z-index: -1;
+      }
+      .gradient-button:hover::before { opacity: 1; }
+
+      /* Pulse effect for live status badges */
+      .pulse-badge { position: relative; }
+      .pulse-badge::after {
+        content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        border-radius: inherit; box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(147, 51, 234, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(147, 51, 234, 0); }
+      }
+
+      /* Method badge animation on hover */
+      .method-badge { position: relative; overflow: hidden; }
+      .method-badge::before {
+        content: ''; position: absolute; top: 0; left: -100%;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.1), rgba(255,255,255,0));
+        transition: left 0.5s ease;
+      }
+      .method-badge:hover::before { left: 100%; }
+
+      /* Shimmer effect for the loading bar */
+      #loadingBar { animation: shimmer 2s linear infinite; background-size: 200% 100%; }
+      @keyframes shimmer {
+        0% { background-position: 100% 0; }
+        100% { background-position: -100% 0; }
+      }
+
+      /* Updated Action Buttons for Endpoint & Results */
+      .copy-download-btn {
+        background-color: rgba(41, 41, 46, 0.8);
+        color: #fff;
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-dark-950 via-dark-900 to-dark-850 text-gray-200 font-sans min-h-screen relative transition-colors duration-300">
+    <!-- Loading Screen with ARIA live region for accessibility -->
+    <div id="loadingScreen" class="fixed inset-0 bg-dark-950 z-[9999] flex flex-col items-center justify-center transition-colors duration-300" aria-live="polite">
+      <div class="relative w-64 h-2 bg-dark-700 rounded-full overflow-hidden mb-4" aria-hidden="true">
+        <div id="loadingBar" class="absolute left-0 top-0 h-full w-0 bg-gradient-to-r from-primary-600 to-accent-pink rounded-full transition-all duration-1000 ease-out"></div>
+      </div>
+      <p class="text-primary-400 text-xl font-medium font-heading">Loading dashboard...</p>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div id="sidebarOverlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden lg:hidden" aria-hidden="true"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-80 bg-dark-800/95 backdrop-blur-md border-r border-dark-600/50 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" aria-label="Sidebar Navigation">
+      <div class="flex flex-col h-full">
+        <!-- Sidebar Header -->
+        <header class="h-16 flex items-center justify-between px-6 relative">
+          <a href="#" class="flex items-center" aria-label="Dashboard Home">
+            <span id="sidebarHeader" class="text-xl font-semibold gradient-text font-heading"></span>
+            <div id="sidebarVersion" class="ml-2 bg-primary-900/50 text-primary-300 px-2 py-0.5 text-xs rounded-full"></div>
+          </a>
+          <!-- Sidebar Search Toggle -->
+          <button id="sidebarSearchToggle" class="p-2 rounded-full hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors" aria-label="Open search">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <!-- Search Input Container -->
+          <div id="sidebarSearchContainer" class="absolute inset-x-0 top-0 h-16 bg-dark-800 flex items-center px-4 hidden" aria-label="Search APIs">
+            <div class="relative w-full flex items-center">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input type="text" id="sidebarSearch" class="w-full h-10 pl-10 pr-10 py-2 bg-dark-600 border-0 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:outline-none transition-all" placeholder="Search APIs..." aria-label="Search APIs">
+              <button id="sidebarSearchClear" class="absolute right-2 p-2 rounded-full text-gray-400 hover:text-gray-200 hidden focus:outline-none" aria-label="Clear search">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <button id="sidebarSearchCancel" class="ml-4 text-white font-medium focus:outline-none">Cancel</button>
+          </div>
+          <div class="unified-separator"></div>
+        </header>
+
+        <!-- Sidebar Categories Navigation -->
+        <nav id="sidebarCategories" class="flex-1 overflow-y-auto px-4 mt-4 pb-6" aria-label="API Categories"></nav>
+      </div>
+    </aside>
+
+    <!-- Navbar -->
+    <nav id="navbar" class="fixed top-0 inset-x-0 z-30 transition-all duration-300" aria-label="Main Navigation">
+      <div class="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="flex items-center">
+          <button id="sidebarToggle" class="p-2 mr-4 rounded-full hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors lg:hidden" aria-label="Toggle sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <a href="#" class="flex items-center" id="navbarBrand" aria-label="Dashboard Home">
+            <span id="header" class="text-xl font-semibold mr-2 gradient-text font-heading"></span>
+            <div id="versionHeader" class="bg-primary-900/50 text-primary-300 px-3 py-1 text-xs rounded-full"></div>
+          </a>
+        </div>
+        <div class="flex items-center">
+          <button id="notificationToggle" class="p-2 rounded-full hover:bg-dark-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors relative" aria-label="Notifications">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span id="notificationBadge" class="absolute top-0 right-0 bg-gradient-to-r from-accent-purple to-accent-pink text-white text-xs rounded-full h-5 w-5 flex items-center justify-center hidden pulse-badge">0</span>
+          </button>
+        </div>
+      </div>
+      <div id="navbarSeparator" class="unified-separator opacity-0"></div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="lg:ml-80 transition-all duration-300">
+      <div class="h-16" aria-hidden="true"></div>
+      <div class="container mx-auto px-6 py-8">
+        <!-- Dashboard Banner -->
+        <section class="flex flex-col items-center mb-12 fadeIn" aria-labelledby="dashboardBanner">
+          <div class="w-full flex justify-center mb-6">
+            <img id="dynamicImage" class="rounded-xl max-w-full lg:max-w-md h-auto object-cover shadow-lg ring-1 ring-white/10" src="/placeholder.svg" loading="lazy" alt="Dashboard banner" />
+          </div>
+          <div class="flex-1 text-center slideUp" style="animation-delay: 0.2s;">
+            <div class="flex flex-wrap items-center justify-center gap-3 mb-3">
+              <h1 id="name" class="text-3xl font-bold gradient-text font-heading"></h1>
+              <div id="version" class="bg-gradient-to-r from-primary-900/50 to-primary-800/50 text-primary-300 px-3 py-1 text-xs rounded-full border border-primary-700/30"></div>
+            </div>
+            <p id="description" class="text-gray-400 text-lg mb-4"></p>
+            <div id="headerStatus" class="text-sm text-green-400 font-medium mb-6 flex items-center justify-center">
+              <span class="inline-block w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" aria-hidden="true"></span>
+              <span id="headerStatusText"></span>
+            </div>
+            <div id="apiLinks" class="flex flex-wrap gap-4 justify-center"></div>
+          </div>
+        </section>
+
+        <!-- Dashboard Stats Cards -->
+        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 slideUp" style="animation-delay: 0.3s;" aria-label="Dashboard Stats">
+          <!-- Total APIs Card -->
+          <article class="bg-dark-700 rounded-xl p-6 shadow-lg card-hover gradient-border" role="region" aria-label="Total APIs">
+            <header class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium font-heading">Total APIs</h3>
+              <div class="p-2 bg-primary-900/30 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </header>
+            <div class="flex items-end">
+              <span id="totalApis" class="text-3xl font-bold">0</span>
+              <span class="text-gray-400 ml-2 mb-1">endpoints</span>
+            </div>
+          </article>
+          <!-- Categories Card -->
+          <article class="bg-dark-700 rounded-xl p-6 shadow-lg card-hover gradient-border" role="region" aria-label="Categories">
+            <header class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium font-heading">Categories</h3>
+              <div class="p-2 bg-green-900/30 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
+            </header>
+            <div class="flex items-end">
+              <span id="totalCategories" class="text-3xl font-bold">0</span>
+              <span class="text-gray-400 ml-2 mb-1">groups</span>
+            </div>
+          </article>
+          <!-- GET Endpoints Card -->
+          <article class="bg-dark-700 rounded-xl p-6 shadow-lg card-hover gradient-border" role="region" aria-label="GET Endpoints">
+            <header class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium font-heading">GET Endpoints</h3>
+              <div class="p-2 bg-blue-900/30 rounded-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
+            </header>
+            <div cla
