@@ -1,9 +1,9 @@
-const { ttdl } = require('ruhend-scraper');
+const { tkdl } = require('globalsprak');
 
 const meta = {
-  name: "TikTok Downloader",
+  name: "TikTokDL",
   version: "1.0.0",
-  description: "Download TikTok video metadata and links",
+  description: "Download TikTok videos and metadata",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
@@ -12,11 +12,20 @@ const meta = {
 
 async function onStart({ res, req }) {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ status: false, error: 'URL parameter is required' });
+
+  if (!url) {
+    return res.status(400).json({ status: false, error: "URL parameter is required" });
+  }
 
   try {
-    const data = await ttdl(url);
-    return res.json({ status: true, data, timestamp: new Date().toISOString() });
+    const response = await tkdl(url);
+    return res.json({
+      status: true,
+      query: url,
+      result: response,
+      timestamp: new Date().toISOString(),
+      powered_by: "Priyanshi's API"
+    });
   } catch (error) {
     return res.status(500).json({ status: false, error: error.message });
   }
