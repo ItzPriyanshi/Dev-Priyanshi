@@ -1,9 +1,9 @@
-const axios = require('axios');
+const axios = require("axios");
 
 const meta = {
   name: "AllDL",
-  version: "1.0.0",
-  description: "Download Facebook reels or videos via RapidAPI service",
+  version: "2.0.0",
+  description: "Universal downloader for TikTok, Instagram, YouTube, Facebook, Twitter, and more",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
@@ -14,32 +14,53 @@ async function onStart({ res, req }) {
   const { url } = req.query;
 
   if (!url) {
-    return res.status(400).json({ status: false, error: "URL parameter is required" });
+    return res.status(400).json({ status: false, error: "Missing 'url' query parameter" });
   }
 
-  const options = {
-    method: 'GET',
-    url: 'https://facebook-reel-and-video-downloader.p.rapidapi.com/app/main.php',
-    params: { url },
-    headers: {
-      'x-rapidapi-key': '9f6f59c4a0mshf76495269afd036p18d05ejsnea07670b73b0',
-      'x-rapidapi-host': 'facebook-reel-and-video-downloader.p.rapidapi.com'
-    }
-  };
+  // Check if URL is supported
+  const supported = [
+    "https://vt.tiktok.com",
+    "https://www.tiktok.com/",
+    "https://www.instagram.com/",
+    "https://youtube.com/",
+    "https://youtu.be/",
+    "https://www.facebook.com",
+    "https://fb.watch",
+    "https://x.com/",
+    "https://twitter.com/",
+    "https://vm.tiktok.com"
+  ];
+
+  const isSupported = supported.some(domain => url.startsWith(domain));
+
+  if (!isSupported) {
+    return res.status(400).json({ status: false, error: "URL not supported by alldl" });
+  }
 
   try {
-    const response = await axios.request(options);
+    const { data } = await axios.get(
+      `https://raw.githubusercontent.com/Blankid018/D1PT0/main/baseApiUrl.json`
+    );
+
+    if (!data?.api) {
+      return res.status(500).json({ status: false, error: "Failed to retrieve base API URL" });
+    }
+
+    const targetUrl = `${data.api}?url=${encodeURIComponent(url)}`;
+    const result = await axios.get(targetUrl);
+
     return res.json({
       status: true,
       query: url,
-      result: response.data,
+      result: result.data,
+      fetched_from: targetUrl,
       timestamp: new Date().toISOString(),
       powered_by: "Priyanshi's API"
     });
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({
       status: false,
-      error: error.message
+      error: err.message || "An error occurred while processing the request"
     });
   }
 }
