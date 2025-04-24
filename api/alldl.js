@@ -17,26 +17,6 @@ async function onStart({ res, req }) {
     return res.status(400).json({ status: false, error: "Missing 'url' query parameter" });
   }
 
-  // Check if URL is supported
-  const supported = [
-    "https://vt.tiktok.com",
-    "https://www.tiktok.com/",
-    "https://www.instagram.com/",
-    "https://youtube.com/",
-    "https://youtu.be/",
-    "https://www.facebook.com",
-    "https://fb.watch",
-    "https://x.com/",
-    "https://twitter.com/",
-    "https://vm.tiktok.com"
-  ];
-
-  const isSupported = supported.some(domain => url.startsWith(domain));
-
-  if (!isSupported) {
-    return res.status(400).json({ status: false, error: "URL not supported by alldl" });
-  }
-
   try {
     const { data } = await axios.get(
       `https://raw.githubusercontent.com/Blankid018/D1PT0/main/baseApiUrl.json`
