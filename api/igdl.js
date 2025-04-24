@@ -30,10 +30,8 @@ async function onStart({ req, res }) {
     return res.json({
       status: true,
       query: url,
-      creator: data.creator,
       result: data.result,
       total: data.result.length,
-      fetched_from: api,
       timestamp: new Date().toISOString()
     });
   } catch (err) {
