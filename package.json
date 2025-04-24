@@ -24,6 +24,7 @@
     "fs": "^0.0.1-security",
     "fs-extra": "^11.3.0",
     "googleapis": "^134.0.0",
+    "got": "^14.4.7",
     "globalsprak": "^1.0.7",
     "https": "^1.0.0",
     "node-fetch": "^2.6.1",
