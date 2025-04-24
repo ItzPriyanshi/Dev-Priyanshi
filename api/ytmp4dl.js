@@ -1,24 +1,38 @@
-const { ytmp4 } = require('ruhend-scraper');
+const { ytmp4 } = require('@vreden/youtube_scraper');
 
 const meta = {
-  name: "YouTube MP4 Downloader",
+  name: "ytmp4dl",
   version: "1.0.0",
-  description: "Download YouTube video link and metadata",
+  description: "Download YouTube video with selectable quality",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
-  path: "/ytmp4dl?url="
+  path: "/ytmp4dl?url=&quality="
 };
 
-async function onStart({ res, req }) {
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ status: false, error: 'URL parameter is required' });
+async function onStart({ req, res }) {
+  const { url, quality = "360" } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ status: false, error: "Missing 'url' query parameter" });
+  }
 
   try {
-    const data = await ytmp4(url);
-    return res.json({ status: true, data, timestamp: new Date().toISOString() });
-  } catch (error) {
-    return res.status(500).json({ status: false, error: error.message });
+    const result = await ytmp4(url, quality);
+    if (!result.status) {
+      return res.status(500).json({ status: false, error: result.result });
+    }
+
+    return res.json({
+      status: true,
+      url,
+      quality,
+      metadata: result.metadata,
+      download: result.download,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return res.status(500).json({ status: false, error: err.message });
   }
 }
 
