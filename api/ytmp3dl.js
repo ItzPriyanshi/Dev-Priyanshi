@@ -1,24 +1,38 @@
-const { ytmp3 } = require('ruhend-scraper');
+const { ytmp3 } = require('@vreden/youtube_scraper');
 
 const meta = {
-  name: "YouTube MP3 Downloader",
+  name: "ytmp3dl",
   version: "1.0.0",
-  description: "Download YouTube video audio link and metadata",
+  description: "Download YouTube audio with selectable quality",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
-  path: "/ytmp3dl?url="
+  path: "/ytmp3dl?url=&quality="
 };
 
-async function onStart({ res, req }) {
-  const { url } = req.query;
-  if (!url) return res.status(400).json({ status: false, error: 'URL parameter is required' });
+async function onStart({ req, res }) {
+  const { url, quality = "128" } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ status: false, error: "Missing 'url' query parameter" });
+  }
 
   try {
-    const data = await ytmp3(url);
-    return res.json({ status: true, data, timestamp: new Date().toISOString() });
-  } catch (error) {
-    return res.status(500).json({ status: false, error: error.message });
+    const result = await ytmp3(url, quality);
+    if (!result.status) {
+      return res.status(500).json({ status: false, error: result.result });
+    }
+
+    return res.json({
+      status: true,
+      url,
+      quality,
+      metadata: result.metadata,
+      download: result.download,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    return res.status(500).json({ status: false, error: err.message });
   }
 }
 
