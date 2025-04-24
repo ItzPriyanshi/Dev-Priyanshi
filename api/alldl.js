@@ -1,9 +1,9 @@
-const axios = require("axios");
+const fg = require("api-dylux");
 
 const meta = {
   name: "AllDL",
-  version: "2.0.0",
-  description: "Universal downloader for TikTok, Instagram, YouTube, Facebook, Twitter, and more",
+  version: "2.1.0",
+  description: "Universal downloader for TikTok, YouTube, Facebook, Twitter, SoundCloud",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
@@ -17,23 +17,36 @@ async function onStart({ res, req }) {
     return res.status(400).json({ status: false, error: "Missing 'url' query parameter" });
   }
 
+  const u = url.toLowerCase();
+  let result = {};
+
   try {
-    const { data } = await axios.get(
-      `https://raw.githubusercontent.com/Blankid018/D1PT0/main/baseApiUrl.json`
-    );
-
-    if (!data?.api) {
-      return res.status(500).json({ status: false, error: "Failed to retrieve base API URL" });
+    if (u.includes("youtube.com") || u.includes("youtu.be")) {
+      const mp4 = await fg.ytmp4(url);
+      const mp3 = await fg.ytmp3(url);
+      result = { mp4, mp3 };
+      console.log("YouTube MP4:", mp4);
+      console.log("YouTube MP3:", mp3);
+    } else if (u.includes("tiktok.com") || u.includes("vm.tiktok.com")) {
+      result = await fg.tiktok(url);
+      console.log("TikTok:", result);
+    } else if (u.includes("facebook.com") || u.includes("fb.watch")) {
+      result = await fg.fbdl(url);
+      console.log("Facebook:", result);
+    } else if (u.includes("twitter.com") || u.includes("x.com")) {
+      result = await fg.twitter(url);
+      console.log("Twitter:", result);
+    } else if (u.includes("soundcloud.com")) {
+      result = await fg.soundcloudDl(url);
+      console.log("SoundCloud:", result);
+    } else {
+      return res.status(400).json({ status: false, error: "URL not supported by alldl" });
     }
-
-    const targetUrl = `${data.api}?url=${encodeURIComponent(url)}`;
-    const result = await axios.get(targetUrl);
 
     return res.json({
       status: true,
       query: url,
-      result: result.data,
-      fetched_from: targetUrl,
+      result,
       timestamp: new Date().toISOString(),
       powered_by: "Priyanshi's API"
     });
