@@ -5,7 +5,7 @@ const meta = {
   name: "gpt4",
   version: "1.0.0",
   description: "API endpoint for OpenAI's GPT-4 Turbo model",
-  author: "Mr Frank",
+  author: "Priyanshi Kaur",
   method: "get",
   category: "ai",
   path: "/gpt4?prompt="
