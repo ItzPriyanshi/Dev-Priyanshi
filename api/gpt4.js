@@ -4,7 +4,7 @@ const meta = {
   name: "gpt3.5",
   version: "1.0.0",
   description: "API endpoint for OpenAI's GPT3.5 Turbo model",
-  author: "Mr Frank",
+  author: "Priyanshi Kaur",
   method: "get",
   category: "ai",
   path: "/gpt4?prompt="
@@ -31,7 +31,7 @@ async function generateGptResponse(prompt) {
     const openai = new OpenAI({ apiKey });
     
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "user", content: prompt }
       ],
