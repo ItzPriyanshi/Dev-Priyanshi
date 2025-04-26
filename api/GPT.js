@@ -61,7 +61,7 @@ async function onStart({ res, req }) {
     return res.json({
       status: true,
       data: result,
-      model: "gpt-4-turbo-preview",
+      model: "gpt-3.5-turbo",
       prompt,
       timestamp: new Date().toISOString(),
       powered_by: "Priyanshi's API"
