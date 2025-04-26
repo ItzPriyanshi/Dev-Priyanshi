@@ -1,23 +1,36 @@
 const OpenAI = require("openai");
+const axios = require("axios");
 
 const meta = {
   name: "gpt4",
   version: "1.0.0",
-  description: "API endpoint for OpenAI's GPT-4 Turbo model (hard-coded API key)",
+  description: "API endpoint for OpenAI's GPT-4 Turbo model (fetching API key from Pastebin)",
   author: "Mr Frank",
   method: "get",
   category: "ai",
   path: "/gpt4?prompt="
 };
 
-const OPENAI_API_KEY = "sk";
+async function getApiKey() {
+  try {
+    const response = await axios.get("https://pastebin.com/raw/DDbHarpJ");
+    return response.data.trim();
+  } catch (error) {
+    console.error("Error fetching API key:", error);
+    throw new Error("Failed to fetch API key");
+  }
+}
 
-const openai = new OpenAI({
-  apiKey: OPENAI_API_KEY,
-});
+async function createOpenAIClient() {
+  const apiKey = await getApiKey();
+  return new OpenAI({
+    apiKey: apiKey,
+  });
+}
 
 async function generateGptResponse(prompt) {
   try {
+    const openai = await createOpenAIClient();
     const response = await openai.chat.completions.create({
       model: "gpt-4-turbo-preview",
       messages: [
@@ -43,7 +56,7 @@ async function onStart({ res, req }) {
   }
 
   try {
-    console.log("Prompt:", prompt);
+    console.log("Processing prompt:", prompt);
     const result = await generateGptResponse(prompt);
     return res.json({
       status: true,
