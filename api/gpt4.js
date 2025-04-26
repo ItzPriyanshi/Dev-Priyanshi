@@ -1,34 +1,44 @@
-const { Configuration, OpenAIApi } = require("openai");
+const axios = require("axios");
 
 const meta = {
-  name: "gpt4",
+  name: "gpt3.5",
   version: "1.0.0",
-  description: "API endpoint for OpenAI's GPT-4 Turbo model (hard-coded API key)",
+  description: "API endpoint for OpenAI's GPT3.5 Turbo model",
   author: "Mr Frank",
   method: "get",
   category: "ai",
   path: "/gpt4?prompt="
 };
 
-const OPENAI_API_KEY = "sk-YOUR_OPENAI_KEY_HERE";  // ← Hard-code your key here
-
-const configuration = new Configuration({
-  apiKey: OPENAI_API_KEY,
-});
-
-const openai = new OpenAIApi(configuration);
+// Function to get API key from Pastebin
+async function getApiKey() {
+  try {
+    const response = await axios.get("https://pastebin.com/raw/DDbHarpJ");
+    return response.data.trim();
+  } catch (error) {
+    console.error("Error fetching API key:", error);
+    throw new Error("Failed to fetch API key");
+  }
+}
 
 async function generateGptResponse(prompt) {
   try {
-    const response = await openai.createChatCompletion({
-      model: "gpt-4-turbo",
+    // Import OpenAI dynamically to avoid initialization at module load time
+    const { OpenAI } = await import("openai");
+    
+    // Get API key and create client only when needed
+    const apiKey = await getApiKey();
+    const openai = new OpenAI({ apiKey });
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
       messages: [
         { role: "user", content: prompt }
       ],
       temperature: 0.7,
       max_tokens: 1024
     });
-    return response.data;
+    return response;
   } catch (error) {
     console.error("OpenAI API Error:", error);
     throw new Error(`OpenAI API request failed: ${error.message}`);
@@ -45,12 +55,12 @@ async function onStart({ res, req }) {
   }
 
   try {
-    console.log("Prompt:", prompt);
+    console.log("Processing prompt:", prompt);
     const result = await generateGptResponse(prompt);
     return res.json({
       status: true,
       data: result,
-      model: "gpt-4-turbo",
+      model: "gpt-3.5-turbo",
       prompt,
       timestamp: new Date().toISOString(),
       powered_by: "Priyanshi's API"
