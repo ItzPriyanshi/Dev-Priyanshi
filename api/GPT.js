@@ -4,7 +4,7 @@ const axios = require("axios");
 const meta = {
   name: "gpt4",
   version: "1.0.0",
-  description: "API endpoint for OpenAI's GPT-4 Turbo model (fetching API key from Pastebin)",
+  description: "API endpoint for OpenAI's GPT-4 Turbo model",
   author: "Mr Frank",
   method: "get",
   category: "ai",
