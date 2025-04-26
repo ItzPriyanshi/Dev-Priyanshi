@@ -2,9 +2,9 @@ const OpenAI = require("openai");
 const axios = require("axios");
 
 const meta = {
-  name: "gpt4",
+  name: "gpt",
   version: "1.0.0",
-  description: "API endpoint for OpenAI's GPT-4 Turbo model",
+  description: "API endpoint for OpenAI's GPT Turbo model",
   author: "Priyanshi Kaur",
   method: "get",
   category: "ai",
@@ -32,7 +32,7 @@ async function generateGptResponse(prompt) {
   try {
     const openai = await createOpenAIClient();
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-3.5-turbo",
       messages: [
         { role: "user", content: prompt }
       ],
