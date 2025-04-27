@@ -1,14 +1,13 @@
-const { instagramDownload } = require("@mrnima/instagram-downloader");
-const axios = require('axios');
+const { igdl } = require('@selxyzz/instagram-dl');
 
 const meta = {
-  name: "instagram Downloader V2",
+  name: "Instagram Downloader V2",
   version: "1.0.0",
-  description: "Downloads media (images/videos) from an Instagram post URL.",
+  description: "Downloads media (images/videos) from an Instagram post URL using selxyzz library.",
   author: "Priyanshi Kaur",
   method: "get",
   category: "downloader",
-  path: "/instagram/v2?url="
+  path: "/igdlv2?url="
 };
 
 async function onStart({ res, req }) {
@@ -32,41 +31,36 @@ async function onStart({ res, req }) {
   try {
     console.log(`Processing Instagram URL: ${url}`);
 
-    // Call the instagramDownload function from the library
-    const downloadResult = await instagramDownload(url);
+    // Call the igdl function from @selxyzz/instagram-dl
+    const downloadResult = await igdl(url);
 
-    // Check the status provided by the library
-    if (!downloadResult || !downloadResult.status) {
+    // If no result or invalid response
+    if (!downloadResult || !Array.isArray(downloadResult)) {
       console.error("Instagram download library failed:", downloadResult);
-      // Determine error message, use library's message if available
-      const errorMessage = downloadResult?.message || "Failed to retrieve download links from the provided Instagram URL. The post might be private, deleted, or the URL is incorrect.";
-      return res.status(404).json({ // 404 Not Found or 500 Internal Server Error might be appropriate
+      return res.status(404).json({
         status: false,
-        error: errorMessage,
+        error: "Failed to retrieve download links from the provided Instagram URL. It may be private, deleted, or invalid.",
         source_url: url,
       });
     }
 
     console.log("Instagram download successful.");
 
-    // Construct the response, omitting the 'creator' field
     return res.json({
-      status: true, // Reflects the library's success status
-      result: downloadResult.result, // The array of media links [{ type, link }, ...]
+      status: true,
+      result: downloadResult, // Array of media items (link, type, thumbnail etc.)
       source_url: url,
       timestamp: new Date().toISOString(),
-      powered_by: "Priyanshi's API" // Acknowledge the underlying library
+      powered_by: "Priyanshi's API"
     });
 
   } catch (error) {
-    console.error("Instagram Downloader v2 Error:", error);
+    console.error("Instagram Downloader V2 Error:", error);
 
-    // Provide a generic error message for unexpected issues
-    // You might want to check error types for more specific responses (e.g., network error vs. library internal error)
     return res.status(500).json({
       status: false,
       error: "An unexpected error occurred while trying to process the Instagram URL.",
-      details: error.message, // Include error message for debugging if needed
+      details: error.message,
       source_url: url,
     });
   }
