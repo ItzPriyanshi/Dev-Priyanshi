@@ -11,6 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@distube/ytdl-core": "^4.14.3",
+    "@selxyzz/instagram-dl": "^1.0.5",
     "@vreden/youtube_scraper": "^1.2.7",
     "axios": "^1.6.8",
     "api-dylux": "^1.8.5",
