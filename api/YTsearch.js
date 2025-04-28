@@ -1,7 +1,7 @@
 const youtubesearchapi = require("youtube-search-api");
 
 const meta = {
-  name: "YTsearch",
+  name: "YouTube Search",
   version: "1.0.0",
   description: "Search YouTube videos and return top 3 results",
   author: "Priyanshi Kaur",
