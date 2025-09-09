@@ -1,6 +1,6 @@
 {
   "name": "Priyanshi's Api",
-  "version": "v1.0",
+  "version": "v3-alpha",
   "description": "REST APIs By Priyanshi Kaur",
   "header": {
     "status": "Online!",
@@ -18,8 +18,8 @@
   },
   "links": [
     {
-      "name": "Source Code",
-      "url": "https://github.com/ajirodesu/wataru-api"
+      "name": "About",
+      "url": "https://about-priyanshi.vercel.app"
     },
     {
       "name": "Contact Me",
