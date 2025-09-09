@@ -1,35 +1,70 @@
-import { Elysia } from "elysia";
-import { readFileSync, readdirSync, statSync } from "fs";
+import { Elysia, t } from "elysia";
+import { readdirSync, statSync, readFileSync } from "fs";
 import path from "path";
 import chalk from "chalk";
+import { fileURLToPath } from "url";
 
-// Constants
+// Bun/Elysia-friendly __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Server port
 const PORT = parseInt(process.env.PORT || "4000", 10);
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 // Load settings.json
 const settingsPath = path.join(__dirname, "settings.json");
 const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
 
-// Collect API metadata
-let totalRoutes = 0;
-const apiModules: any[] = [];
+// API metadata collection
+interface ApiModule {
+  name: string;
+  description: string;
+  category: string;
+  path: string;
+  author: string;
+  method: string;
+}
 
-// Recursive loader for API modules
-const loadModules = (dir: string, app: Elysia) => {
+const apiModules: ApiModule[] = [];
+let totalRoutes = 0;
+
+// Create Elysia app
+const app = new Elysia();
+
+// Middleware to augment JSON responses
+app.onAfterHandle(({ response }) => {
+  if (response && typeof response === "object" && !Array.isArray(response)) {
+    return {
+      operator: settings.apiSettings?.operator || "Created Using Rynn UI",
+      ...response,
+    };
+  }
+  return response;
+});
+
+// Serve static files
+app.get("/", () => Bun.file(path.join(__dirname, "web", "portal.html")));
+app.get("/docs", () => Bun.file(path.join(__dirname, "web", "docs.html")));
+app.get("/settings.json", () => Bun.file(settingsPath));
+
+// Recursive function to load API modules
+const loadModules = (dir: string) => {
   for (const file of readdirSync(dir)) {
     const filePath = path.join(dir, file);
     const stat = statSync(filePath);
 
     if (stat.isDirectory()) {
-      loadModules(filePath, app);
-    } else if (stat.isFile() && path.extname(file) === ".ts") {
+      loadModules(filePath);
+    } else if (stat.isFile() && [".js", ".ts"].includes(path.extname(file))) {
       try {
-        const module = require(filePath);
+        // Dynamic import for TS/JS modules
+        const module = await import(filePath);
 
         if (!module.meta || !module.onStart || typeof module.onStart !== "function") {
           console.warn(
-            chalk.bgHex("#FF9999").hex("#333").bold(`Invalid module: ${filePath}`)
+            chalk.bgHex("#FF9999").hex("#333").bold(
+              `Invalid module in ${filePath}: Missing or invalid meta/onStart`
+            )
           );
           continue;
         }
@@ -38,10 +73,10 @@ const loadModules = (dir: string, app: Elysia) => {
         const routePath = "/api" + basePath;
         const method = (module.meta.method || "get").toLowerCase();
 
-        // Register the route in Elysia
-        (app as any)[method](routePath, ({ request, set }) =>
-          module.onStart({ req: request, set })
-        );
+        // Register route in Elysia
+        (app as any)[method](routePath, async ({ request, set }) => {
+          await module.onStart({ req: request, res: set });
+        });
 
         apiModules.push({
           name: module.meta.name,
@@ -73,63 +108,46 @@ const loadModules = (dir: string, app: Elysia) => {
   }
 };
 
-// Create Elysia app
-const app = new Elysia()
-  // Middleware: inject operator into JSON responses
-  .onAfterHandle(({ response }) => {
-    if (typeof response === "object" && response !== null) {
-      return {
-        operator:
-          settings.apiSettings?.operator || "Created Using Rynn UI",
-        ...response,
-      };
-    }
-    return response;
-  })
-
-  // Static serving for web assets
-  .get("/", () => Bun.file(path.join(__dirname, "web", "portal.html")))
-  .get("/docs", () => Bun.file(path.join(__dirname, "web", "docs.html")))
-  .get("/settings.json", () => Bun.file(settingsPath))
-
-  // API info endpoint
-  .get("/api/info", () => {
-    const categories: Record<string, any> = {};
-    for (const module of apiModules) {
-      if (!categories[module.category]) {
-        categories[module.category] = { name: module.category, items: [] };
-      }
-      categories[module.category].items.push({
-        name: module.name,
-        desc: module.description,
-        path: module.path,
-        author: module.author,
-        method: module.method,
-      });
-    }
-    return { categories: Object.values(categories) };
-  })
-
-  // Error handling
-  .onError(({ code, error }) => {
-    if (code === "NOT_FOUND") {
-      return Bun.file(path.join(__dirname, "web", "404.html"));
-    }
-    console.error(error);
-    return Bun.file(path.join(__dirname, "web", "500.html"));
-  });
-
 // Load all API modules
 const apiFolder = path.join(__dirname, "api");
-loadModules(apiFolder, app);
+await loadModules(apiFolder);
 
 console.log(chalk.bgHex("#90EE90").hex("#333").bold("Load Complete! ✓"));
 console.log(
   chalk.bgHex("#90EE90").hex("#333").bold(`Total Routes Loaded: ${totalRoutes}`)
 );
 
+// API metadata endpoint
+app.get("/api/info", () => {
+  const categories: Record<string, any> = {};
+  for (const module of apiModules) {
+    if (!categories[module.category]) {
+      categories[module.category] = { name: module.category, items: [] };
+    }
+    categories[module.category].items.push({
+      name: module.name,
+      desc: module.description,
+      path: module.path,
+      author: module.author,
+      method: module.method,
+    });
+  }
+  return { categories: Object.values(categories) };
+});
+
+// Global error handling
+app.onError(({ code, error }) => {
+  if (code === "NOT_FOUND") {
+    return Bun.file(path.join(__dirname, "web", "404.html"));
+  }
+  console.error(error);
+  return Bun.file(path.join(__dirname, "web", "500.html"));
+});
+
 // Start server
 app.listen(PORT);
 console.log(
   chalk.bgHex("#90EE90").hex("#333").bold(`Server is running on port ${PORT}`)
 );
+
+export default app;
