@@ -1,16 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "index.js",
-      "use": "@vercel/node"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "index.ts": {
+      "runtime": "@godsreveal/vercel-bun@0.2.4"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.js"
-    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.ts" }
   ],
   "env": {
     "NODE_ENV": "production"
