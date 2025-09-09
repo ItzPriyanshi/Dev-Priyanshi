@@ -1,21 +1,19 @@
-import { Elysia, t } from "elysia";
+// index.ts
+import { Elysia } from "elysia";
 import { readdirSync, statSync, readFileSync } from "fs";
 import path from "path";
 import chalk from "chalk";
 import { fileURLToPath } from "url";
 
-// Bun/Elysia-friendly __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Server port
 const PORT = parseInt(process.env.PORT || "4000", 10);
 
-// Load settings.json
+// Load settings
 const settingsPath = path.join(__dirname, "settings.json");
 const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
 
-// API metadata collection
+// API metadata
 interface ApiModule {
   name: string;
   description: string;
@@ -28,10 +26,9 @@ interface ApiModule {
 const apiModules: ApiModule[] = [];
 let totalRoutes = 0;
 
-// Create Elysia app
 const app = new Elysia();
 
-// Middleware to augment JSON responses
+// JSON augmentation middleware
 app.onAfterHandle(({ response }) => {
   if (response && typeof response === "object" && !Array.isArray(response)) {
     return {
@@ -42,23 +39,49 @@ app.onAfterHandle(({ response }) => {
   return response;
 });
 
-// Serve static files
+// Static files
 app.get("/", () => Bun.file(path.join(__dirname, "web", "portal.html")));
 app.get("/docs", () => Bun.file(path.join(__dirname, "web", "docs.html")));
 app.get("/settings.json", () => Bun.file(settingsPath));
 
-// Recursive function to load API modules
-const loadModules = (dir: string) => {
+// API info endpoint
+app.get("/api/info", () => {
+  const categories: Record<string, any> = {};
+  for (const module of apiModules) {
+    if (!categories[module.category]) {
+      categories[module.category] = { name: module.category, items: [] };
+    }
+    categories[module.category].items.push({
+      name: module.name,
+      desc: module.description,
+      path: module.path,
+      author: module.author,
+      method: module.method,
+    });
+  }
+  return { categories: Object.values(categories) };
+});
+
+// Global error handling
+app.onError(({ code, error }) => {
+  if (code === "NOT_FOUND") {
+    return Bun.file(path.join(__dirname, "web", "404.html"));
+  }
+  console.error(error);
+  return Bun.file(path.join(__dirname, "web", "500.html"));
+});
+
+// Recursive API loader (async)
+async function loadModules(dir: string) {
   for (const file of readdirSync(dir)) {
     const filePath = path.join(dir, file);
     const stat = statSync(filePath);
 
     if (stat.isDirectory()) {
-      loadModules(filePath);
-    } else if (stat.isFile() && [".js", ".ts"].includes(path.extname(file))) {
+      await loadModules(filePath); // recurse
+    } else if (stat.isFile() && [".ts", ".js"].includes(path.extname(file))) {
       try {
-        // Dynamic import for TS/JS modules
-        const module = await import(filePath);
+        const module = await import(`file://${filePath}`);
 
         if (!module.meta || !module.onStart || typeof module.onStart !== "function") {
           console.warn(
@@ -73,7 +96,6 @@ const loadModules = (dir: string) => {
         const routePath = "/api" + basePath;
         const method = (module.meta.method || "get").toLowerCase();
 
-        // Register route in Elysia
         (app as any)[method](routePath, async ({ request, set }) => {
           await module.onStart({ req: request, res: set });
         });
@@ -106,9 +128,9 @@ const loadModules = (dir: string) => {
       }
     }
   }
-};
+}
 
-// Load all API modules
+// Start server after loading modules
 const apiFolder = path.join(__dirname, "api");
 await loadModules(apiFolder);
 
@@ -117,34 +139,6 @@ console.log(
   chalk.bgHex("#90EE90").hex("#333").bold(`Total Routes Loaded: ${totalRoutes}`)
 );
 
-// API metadata endpoint
-app.get("/api/info", () => {
-  const categories: Record<string, any> = {};
-  for (const module of apiModules) {
-    if (!categories[module.category]) {
-      categories[module.category] = { name: module.category, items: [] };
-    }
-    categories[module.category].items.push({
-      name: module.name,
-      desc: module.description,
-      path: module.path,
-      author: module.author,
-      method: module.method,
-    });
-  }
-  return { categories: Object.values(categories) };
-});
-
-// Global error handling
-app.onError(({ code, error }) => {
-  if (code === "NOT_FOUND") {
-    return Bun.file(path.join(__dirname, "web", "404.html"));
-  }
-  console.error(error);
-  return Bun.file(path.join(__dirname, "web", "500.html"));
-});
-
-// Start server
 app.listen(PORT);
 console.log(
   chalk.bgHex("#90EE90").hex("#333").bold(`Server is running on port ${PORT}`)
