@@ -4,7 +4,39 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 
-const PORT = process.env.PORT || 4000;
+// Port configuration for Render and automatic port finding
+const DEFAULT_PORT = 4000;
+const PORT = process.env.PORT || process.env.RENDER_EXTERNAL_PORT || DEFAULT_PORT;
+
+// Function to find available port
+async function findAvailablePort(startPort: number): Promise<number> {
+  const net = await import('net');
+  
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    
+    server.listen(startPort, () => {
+      const port = (server.address() as any)?.port;
+      server.close(() => {
+        resolve(port);
+      });
+    });
+    
+    server.on('error', async (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        // Try next port
+        try {
+          const nextPort = await findAvailablePort(startPort + 1);
+          resolve(nextPort);
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        reject(err);
+      }
+    });
+  });
+}
 
 // Load settings
 const settingsPath = path.join(process.cwd(), 'settings.json');
@@ -43,17 +75,12 @@ let totalRoutes = 0;
 
 // Create Elysia app
 const app = new Elysia()
-  .use(cors())
-  // Static file serving using Bun's built-in static file serving
-  .get('/static/*', ({ params }) => {
-    const filePath = path.join(process.cwd(), 'web', (params as any)['*']);
-    if (fs.existsSync(filePath)) {
-      return Bun.file(filePath);
-    }
-    return new Response('File not found', { status: 404 });
-  })
+  .use(cors({
+    origin: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }))
   .derive(({ headers, set }) => {
-    // Add default response transformation
     return {
       transformResponse: (data: any) => {
         if (data && typeof data === 'object' && !data.status) {
@@ -82,14 +109,12 @@ const loadModules = async (dir: string) => {
     const stat = fs.statSync(filePath);
     
     if (stat.isDirectory()) {
-      await loadModules(filePath); // Recurse into subfolder
+      await loadModules(filePath);
     } else if (stat.isFile() && (path.extname(file) === '.js' || path.extname(file) === '.ts')) {
       try {
-        // Use file:// URL for proper ES module import
         const fileUrl = `file://${filePath}`;
         const module: ApiModule = await import(fileUrl);
         
-        // Validate module structure
         if (!module.meta || !module.onStart || typeof module.onStart !== 'function') {
           console.warn(chalk.bgHex('#FF9999').hex('#333').bold(`Invalid module in ${filePath}: Missing or invalid meta/onStart`));
           continue;
@@ -99,7 +124,6 @@ const loadModules = async (dir: string) => {
         const routePath = '/api' + basePath;
         const method = (module.meta.method || 'get').toLowerCase();
 
-        // Register route with Elysia
         if (method === 'get') {
           app.get(routePath, ({ request, query, transformResponse }) => {
             console.log(chalk.bgHex('#99FF99').hex('#333').bold(`Handling GET request for ${routePath}`));
@@ -160,7 +184,6 @@ console.log(chalk.bgHex('#90EE90').hex('#333').bold(`Total Routes Loaded: ${tota
 
 // Define routes
 app
-  // Serve settings.json
   .get('/settings.json', () => {
     if (fs.existsSync(settingsPath)) {
       return Bun.file(settingsPath);
@@ -168,7 +191,6 @@ app
     return { error: 'Settings file not found' };
   })
   
-  // API info endpoint
   .get('/api/info', ({ transformResponse }) => {
     const categories: Record<string, { name: string; items: any[] }> = {};
     
@@ -189,67 +211,114 @@ app
     return transformResponse ? transformResponse(result) : result;
   })
   
-  // Root route - serve portal.html or fallback
   .get('/', () => {
     const portalPath = path.join(process.cwd(), 'web', 'portal.html');
     if (fs.existsSync(portalPath)) {
       return Bun.file(portalPath);
     }
-    return new Response('<h1>API Server Running</h1><p>Portal file not found</p>', {
+    return new Response(`
+      <html>
+        <head><title>API Server</title></head>
+        <body>
+          <h1>🚀 API Server Running</h1>
+          <p>Server is running successfully!</p>
+          <p><a href="/api/info">View API Documentation</a></p>
+        </body>
+      </html>
+    `, {
       headers: { 'Content-Type': 'text/html' }
     });
   })
   
-  // Docs route
   .get('/docs', () => {
     const docsPath = path.join(process.cwd(), 'web', 'docs.html');
     if (fs.existsSync(docsPath)) {
       return Bun.file(docsPath);
     }
-    return new Response('<h1>API Documentation</h1><p>Docs file not found</p>', {
+    return new Response(`
+      <html>
+        <head><title>API Documentation</title></head>
+        <body>
+          <h1>📚 API Documentation</h1>
+          <p><a href="/api/info">View Available APIs</a></p>
+        </body>
+      </html>
+    `, {
       headers: { 'Content-Type': 'text/html' }
     });
   })
   
-  // Serve any file from web directory
   .get('/*', ({ params }) => {
     const filePath = path.join(process.cwd(), 'web', (params as any)['*']);
     if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
       return Bun.file(filePath);
     }
     
-    // 404 fallback
-    const notFoundPath = path.join(process.cwd(), 'web', '404.html');
-    if (fs.existsSync(notFoundPath)) {
-      return new Response(Bun.file(notFoundPath), { status: 404 });
-    }
-    return new Response('404 - Page Not Found', { status: 404 });
+    return new Response(`
+      <html>
+        <head><title>404 - Not Found</title></head>
+        <body>
+          <h1>404 - Page Not Found</h1>
+          <p><a href="/">Go Home</a></p>
+        </body>
+      </html>
+    `, { 
+      status: 404,
+      headers: { 'Content-Type': 'text/html' }
+    });
   })
   
-  // Global error handler
   .onError(({ code, error, set }) => {
     console.error('Server Error:', error);
     
     if (code === 'NOT_FOUND') {
       set.status = 404;
-      const notFoundPath = path.join(process.cwd(), 'web', '404.html');
-      if (fs.existsSync(notFoundPath)) {
-        return Bun.file(notFoundPath);
-      }
-      return '404 - Not Found';
+      return new Response('404 - Not Found', { status: 404 });
     }
     
-    // 500 error handler
     set.status = 500;
-    const errorPath = path.join(process.cwd(), 'web', '500.html');
-    if (fs.existsSync(errorPath)) {
-      return Bun.file(errorPath);
-    }
-    return 'Internal Server Error';
-  })
-  
-  .listen(PORT);
+    return new Response('Internal Server Error', { status: 500 });
+  });
 
-console.log(chalk.bgHex('#90EE90').hex('#333').bold(`🚀 Server is running on port ${PORT}`));
+// Start server with automatic port detection
+async function startServer() {
+  try {
+    let serverPort = Number(PORT);
+    
+    // If environment doesn't specify a port, find available one
+    if (!process.env.PORT && !process.env.RENDER_EXTERNAL_PORT) {
+      serverPort = await findAvailablePort(DEFAULT_PORT);
+    }
+    
+    const server = app.listen({
+      port: serverPort,
+      hostname: '0.0.0.0' // Important for Render deployment
+    });
+    
+    console.log(chalk.bgHex('#90EE90').hex('#333').bold(`🚀 Server is running on port ${serverPort}`));
+    console.log(chalk.bgHex('#87CEEB').hex('#333').bold(`🌐 Access your API at: http://localhost:${serverPort}`));
+    
+    return server;
+  } catch (error: any) {
+    if (error.code === 'EADDRINUSE') {
+      console.log(chalk.bgHex('#FFB6C1').hex('#333').bold(`Port ${PORT} is in use, finding alternative...`));
+      const availablePort = await findAvailablePort(Number(PORT) + 1);
+      
+      const server = app.listen({
+        port: availablePort,
+        hostname: '0.0.0.0'
+      });
+      
+      console.log(chalk.bgHex('#90EE90').hex('#333').bold(`🚀 Server started on available port ${availablePort}`));
+      return server;
+    } else {
+      console.error(chalk.bgHex('#FF6B6B').hex('#333').bold(`Failed to start server: ${error.message}`));
+      process.exit(1);
+    }
+  }
+}
+
+// Start the server
+startServer();
 
 export default app;
