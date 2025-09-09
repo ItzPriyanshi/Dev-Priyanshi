@@ -1,6 +1,5 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import { staticPlugin } from '@elysiajs/static';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
@@ -9,7 +8,13 @@ const PORT = process.env.PORT || 4000;
 
 // Load settings
 const settingsPath = path.join(process.cwd(), 'settings.json');
-const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+let settings: any = {};
+try {
+  settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+} catch (error) {
+  console.warn('Settings file not found, using defaults');
+  settings = { apiSettings: { operator: "Created Using Rynn UI" } };
+}
 
 interface ApiModule {
   meta: {
@@ -39,28 +44,37 @@ let totalRoutes = 0;
 // Create Elysia app
 const app = new Elysia()
   .use(cors())
-  .use(staticPlugin({
-    assets: 'web',
-    prefix: '/'
-  }))
-  .onBeforeHandle(({ set }) => {
-    // Add operator to all JSON responses
-    set.headers['Content-Type'] = 'application/json';
-  })
-  .transform(({ response, set }) => {
-    // Middleware to augment JSON responses
-    if (response && typeof response === 'object') {
-      return {
-        status: response.status || 'success',
-        operator: (settings.apiSettings && settings.apiSettings.operator) || "Created Using Rynn UI",
-        ...response
-      };
+  // Static file serving using Bun's built-in static file serving
+  .get('/static/*', ({ params }) => {
+    const filePath = path.join(process.cwd(), 'web', (params as any)['*']);
+    if (fs.existsSync(filePath)) {
+      return Bun.file(filePath);
     }
-    return response;
+    return new Response('File not found', { status: 404 });
+  })
+  .derive(({ headers, set }) => {
+    // Add default response transformation
+    return {
+      transformResponse: (data: any) => {
+        if (data && typeof data === 'object' && !data.status) {
+          return {
+            status: 'success',
+            operator: (settings.apiSettings && settings.apiSettings.operator) || "Created Using Rynn UI",
+            ...data
+          };
+        }
+        return data;
+      }
+    };
   });
 
 // Load API modules recursively
 const loadModules = async (dir: string) => {
+  if (!fs.existsSync(dir)) {
+    console.log(chalk.yellow(`API directory not found: ${dir}`));
+    return;
+  }
+
   const files = fs.readdirSync(dir);
   
   for (const file of files) {
@@ -71,8 +85,9 @@ const loadModules = async (dir: string) => {
       await loadModules(filePath); // Recurse into subfolder
     } else if (stat.isFile() && (path.extname(file) === '.js' || path.extname(file) === '.ts')) {
       try {
-        // Dynamic import for ES modules
-        const module: ApiModule = await import(filePath);
+        // Use file:// URL for proper ES module import
+        const fileUrl = `file://${filePath}`;
+        const module: ApiModule = await import(fileUrl);
         
         // Validate module structure
         if (!module.meta || !module.onStart || typeof module.onStart !== 'function') {
@@ -86,17 +101,34 @@ const loadModules = async (dir: string) => {
 
         // Register route with Elysia
         if (method === 'get') {
-          app.get(routePath, ({ request, set }) => {
+          app.get(routePath, ({ request, query, transformResponse }) => {
             console.log(chalk.bgHex('#99FF99').hex('#333').bold(`Handling GET request for ${routePath}`));
-            const req = { url: new URL(request.url), query: Object.fromEntries(new URL(request.url).searchParams) };
-            const res = { json: (data: any) => data, status: (code: number) => ({ status: code }) };
+            const req = { 
+              url: new URL(request.url), 
+              query: query || {},
+              headers: Object.fromEntries(request.headers.entries())
+            };
+            const res = { 
+              json: (data: any) => transformResponse ? transformResponse(data) : data,
+              status: (code: number) => ({ status: code }),
+              send: (data: any) => data
+            };
             return module.onStart({ req, res });
           });
         } else if (method === 'post') {
-          app.post(routePath, ({ request, body, set }) => {
+          app.post(routePath, ({ request, body, query, transformResponse }) => {
             console.log(chalk.bgHex('#99FF99').hex('#333').bold(`Handling POST request for ${routePath}`));
-            const req = { url: new URL(request.url), body, query: Object.fromEntries(new URL(request.url).searchParams) };
-            const res = { json: (data: any) => data, status: (code: number) => ({ status: code }) };
+            const req = { 
+              url: new URL(request.url), 
+              body: body || {},
+              query: query || {},
+              headers: Object.fromEntries(request.headers.entries())
+            };
+            const res = { 
+              json: (data: any) => transformResponse ? transformResponse(data) : data,
+              status: (code: number) => ({ status: code }),
+              send: (data: any) => data
+            };
             return module.onStart({ req, res });
           });
         }
@@ -121,9 +153,7 @@ const loadModules = async (dir: string) => {
 
 // Load modules from api folder
 const apiFolder = path.join(process.cwd(), 'api');
-if (fs.existsSync(apiFolder)) {
-  await loadModules(apiFolder);
-}
+await loadModules(apiFolder);
 
 console.log(chalk.bgHex('#90EE90').hex('#333').bold('Load Complete! ✓'));
 console.log(chalk.bgHex('#90EE90').hex('#333').bold(`Total Routes Loaded: ${totalRoutes}`));
@@ -132,11 +162,14 @@ console.log(chalk.bgHex('#90EE90').hex('#333').bold(`Total Routes Loaded: ${tota
 app
   // Serve settings.json
   .get('/settings.json', () => {
-    return Bun.file(settingsPath);
+    if (fs.existsSync(settingsPath)) {
+      return Bun.file(settingsPath);
+    }
+    return { error: 'Settings file not found' };
   })
   
   // API info endpoint
-  .get('/api/info', () => {
+  .get('/api/info', ({ transformResponse }) => {
     const categories: Record<string, { name: string; items: any[] }> = {};
     
     apiModules.forEach(module => {
@@ -152,34 +185,71 @@ app
       });
     });
     
-    return { categories: Object.values(categories) };
+    const result = { categories: Object.values(categories) };
+    return transformResponse ? transformResponse(result) : result;
   })
   
-  // Root route
+  // Root route - serve portal.html or fallback
   .get('/', () => {
-    return Bun.file(path.join(process.cwd(), 'web', 'portal.html'));
+    const portalPath = path.join(process.cwd(), 'web', 'portal.html');
+    if (fs.existsSync(portalPath)) {
+      return Bun.file(portalPath);
+    }
+    return new Response('<h1>API Server Running</h1><p>Portal file not found</p>', {
+      headers: { 'Content-Type': 'text/html' }
+    });
   })
   
   // Docs route
   .get('/docs', () => {
-    return Bun.file(path.join(process.cwd(), 'web', 'docs.html'));
+    const docsPath = path.join(process.cwd(), 'web', 'docs.html');
+    if (fs.existsSync(docsPath)) {
+      return Bun.file(docsPath);
+    }
+    return new Response('<h1>API Documentation</h1><p>Docs file not found</p>', {
+      headers: { 'Content-Type': 'text/html' }
+    });
   })
   
-  // 404 handler
+  // Serve any file from web directory
+  .get('/*', ({ params }) => {
+    const filePath = path.join(process.cwd(), 'web', (params as any)['*']);
+    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+      return Bun.file(filePath);
+    }
+    
+    // 404 fallback
+    const notFoundPath = path.join(process.cwd(), 'web', '404.html');
+    if (fs.existsSync(notFoundPath)) {
+      return new Response(Bun.file(notFoundPath), { status: 404 });
+    }
+    return new Response('404 - Page Not Found', { status: 404 });
+  })
+  
+  // Global error handler
   .onError(({ code, error, set }) => {
+    console.error('Server Error:', error);
+    
     if (code === 'NOT_FOUND') {
       set.status = 404;
-      return Bun.file(path.join(process.cwd(), 'web', '404.html'));
+      const notFoundPath = path.join(process.cwd(), 'web', '404.html');
+      if (fs.existsSync(notFoundPath)) {
+        return Bun.file(notFoundPath);
+      }
+      return '404 - Not Found';
     }
     
     // 500 error handler
-    console.error(error);
     set.status = 500;
-    return Bun.file(path.join(process.cwd(), 'web', '500.html'));
+    const errorPath = path.join(process.cwd(), 'web', '500.html');
+    if (fs.existsSync(errorPath)) {
+      return Bun.file(errorPath);
+    }
+    return 'Internal Server Error';
   })
   
   .listen(PORT);
 
-console.log(chalk.bgHex('#90EE90').hex('#333').bold(`Server is running on port ${PORT}`));
+console.log(chalk.bgHex('#90EE90').hex('#333').bold(`🚀 Server is running on port ${PORT}`));
 
 export default app;
